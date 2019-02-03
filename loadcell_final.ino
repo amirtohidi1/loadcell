@@ -35,11 +35,29 @@ int cyclesabet = 0;
 int cyclesabet_check = 20;
 
 struct Parametr {
+  float m50;
+  float v50;
+  float m100;
+  float v100;
+  float m150;
+  float v150;
+  float m200;
   float v200;
+  float m250;
+  float v250;
 };
 
 Parametr parametr1 = {
   0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0
 };
 
 
@@ -92,17 +110,50 @@ void loop() {
 
   data_fetch = getDataWithShow(loopvazn, false , true);
   data_fetch = data_fetch - zero;
-
+  Serial.println(data_fetch);
   datanew  = (calibre_range(data_fetch));
+  Serial.println(datanew);
 }
 
 /**
    Calibre Range
 */
 
-float calibre_range(float dataInput)
+float calibre_range(float val)
 {
-  return dataInput / parametr1.v200;
+  float retData = 0;
+  int type = 0;
+  
+  if (val <= parametr1.m50)
+  {
+    retData =  val / parametr1.v50 ;
+    type = parametr1.v50;
+  }
+  else  if (val > parametr1.m50 && val <= parametr1.m100)
+  {
+    retData =  val / parametr1.v100 ;
+    type = parametr1.v100;
+  }
+  else  if (val > parametr1.m100 && val <= parametr1.m150)
+  {
+    retData =  val / parametr1.v150 ;
+    type = parametr1.v150;
+  }
+  else  if (val > parametr1.m150 && val <= parametr1.m200)
+  {
+    retData =  val / parametr1.v200 ;
+    type = parametr1.v200;
+  }
+  else
+  {
+    retData =  val / parametr1.v250 ;
+    type = parametr1.v250;
+  }
+
+  //  Serial.println(val);
+  //  Serial.println(type);
+  //  Serial.println(retData);
+  return retData;
 }
 
 
@@ -206,6 +257,46 @@ void Calibration()
   zero = (data_fetch / loopvazn);
 
 
+  //SET 50
+  data_fetch = 0;
+  showSegment('s' , 'e' , 't' , 500);
+  showSegment(' ' , '5' , '0' , 1500);
+
+  for (int y = 0 ; y < loopvazn ; y++)
+  {
+    data_fetch = data_fetch + scale.read_average(1) - zero ;
+    showSegment();
+  }
+  parametr1.m50 = (data_fetch / loopvazn);
+  parametr1.v50  = parametr1.m50 / 50;
+
+  //SET 100
+  data_fetch = 0;
+  showSegment('s' , 'e' , 't' , 500);
+  showSegment('1' , '0' , '0' , 1500);
+
+  for (int y = 0 ; y < loopvazn ; y++)
+  {
+    data_fetch = data_fetch + scale.read_average(1) - zero ;
+    showSegment();
+  }
+  parametr1.m100 = (data_fetch / loopvazn);
+  parametr1.v100  = parametr1.m100 / 100;
+
+  //SET 150
+  data_fetch = 0;
+  showSegment('s' , 'e' , 't' , 500);
+  showSegment('1' , '5' , '0' , 1500);
+
+  for (int y = 0 ; y < loopvazn ; y++)
+  {
+    data_fetch = data_fetch + scale.read_average(1) - zero ;
+    showSegment();
+  }
+  parametr1.m150 = (data_fetch / loopvazn);
+  parametr1.v150  = parametr1.m150 / 150;
+
+
   //SET 200
   data_fetch = 0;
   showSegment('s' , 'e' , 't' , 500);
@@ -216,11 +307,22 @@ void Calibration()
     data_fetch = data_fetch + scale.read_average(1) - zero ;
     showSegment();
   }
+  parametr1.m200 = (data_fetch / loopvazn);
+  parametr1.v200  = parametr1.m200 / 200;
 
-  float t1  = (data_fetch / loopvazn);
+  //SET 250
+  data_fetch = 0;
+  showSegment('s' , 'e' , 't' , 500);
+  showSegment('2' , '5' , '0' , 1500);
 
-
-  parametr1.v200 = t1 / 200;
+  for (int y = 0 ; y < loopvazn ; y++)
+  {
+    data_fetch = data_fetch + scale.read_average(1) - zero ;
+    showSegment();
+  }
+  parametr1.m250 = (data_fetch / loopvazn);
+  parametr1.v250  = parametr1.m250 / 250;
+  
   EEPROM.put( 0, parametr1 );
 
   showSegment('C' , 'A' , 'L' , 500);
@@ -275,6 +377,8 @@ float getDataWithShow(int loopvazn , bool refreshSevSeg , bool refreshShowSegmen
     fetchData = fetchData + scale.read_average(1);
     if (refreshSevSeg)
     {
+
+
       sevseg.refreshDisplay();
     } else if (refreshShowSegment)
     {
