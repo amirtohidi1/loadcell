@@ -30,10 +30,9 @@ float datanumber;
 float calibration_factor = -96650; //-106600 worked for my 40Kg max scale setup
 float zero = 0;
 int zeroLoop = 20;
-float v1 = 931;
 
 int cyclesabet = 0;
-int cyclesabet_check = 100;
+int cyclesabet_check = 20;
 
 struct Parametr {
   float v200;
@@ -74,14 +73,9 @@ void setup() {
   sevseg.setBrightness(50);
 
   sevseg.setChars(str);
-
-  for (int i = 0 ; i < 1000 ; i++)
-  {
-
-    sevseg.refreshDisplay();
-  }
-  zero = scale.read_average(zeroLoop);
-
+  zero = getDataWithShow(zeroLoop, true, false);
+  Serial.println("Zero SET");
+  EEPROM.get( 0, parametr1 );
 }
 
 //=============================================================================================
@@ -89,62 +83,28 @@ void setup() {
 //=============================================================================================
 int datanew = 0;
 void loop() {
-  //
-  //Serial.print("new=");
-  //Serial.print(datanew);
-  //    Serial.println();
-  datanew = round(datanew);
 
-  if ((datanew < 5 && datanew > -5) &&   cyclesabet < cyclesabet_check)
-  {
-    datanumber = 0;
-    cyclesabet++;
-    //    Serial.print("zero adad");
-    //    Serial.println();
-  }
-  else if ( (  (datanew == datanumber) || (datanew ) == (datanumber - 1) || (datanew ) == (datanumber + 1)  ) && cyclesabet < cyclesabet_check)
-  {
-    //datanumber = round(((datanew + datanumber) / 2));
-    cyclesabet++;
-    //    Serial.print("kam");
-    //    Serial.println();
-  }
-  else if ( (  (datanew) == (datanumber - 2) || (datanew ) == (datanumber + 2)   ) && cyclesabet < cyclesabet_check)
-  {
-    datanumber = round(((datanew + datanumber) / 2));
-    cyclesabet++;
-  }
-  else
-  {
-    //Serial.println();
-    datanumber = round(datanew);
-    cyclesabet = 0;
-  }
-
+  checkDataForShow();
   checkZeroAndCal();
 
   float data_fetch = 0 ;
   int loopvazn = 30;
-  for (int y = 0 ; y < loopvazn ; y++)
-  {
-    data_fetch = data_fetch + scale.read_average(1);
-    showSegment();
-  }
 
-  data_fetch = (data_fetch / loopvazn);
+  data_fetch = getDataWithShow(loopvazn, false , true);
   data_fetch = data_fetch - zero;
 
   datanew  = (calibre_range(data_fetch));
 }
 
+/**
+   Calibre Range
+*/
 
-//=============================================================================================
-
-
-float calibre_range(float val)
+float calibre_range(float dataInput)
 {
-  return val / v1;
+  return dataInput / parametr1.v200;
 }
+
 
 /**
    ShowSegment
@@ -177,7 +137,6 @@ void showSegment(int loopshow)
   {
     sevseg.refreshDisplay(); // Must run repeatedly
   }
-
 }
 
 
@@ -250,7 +209,7 @@ void Calibration()
   //SET 200
   data_fetch = 0;
   showSegment('s' , 'e' , 't' , 500);
-  showSegment('2' , '0' , '0' , 1000);
+  showSegment('2' , '0' , '0' , 1500);
 
   for (int y = 0 ; y < loopvazn ; y++)
   {
@@ -267,4 +226,65 @@ void Calibration()
   showSegment('C' , 'A' , 'L' , 500);
   showSegment('E' , 'n' , 'd' , 500);
 
+}
+
+/**
+   check Data for Status
+
+*/
+void checkDataForShow()
+{
+  datanew = round(datanew);
+
+  if ((datanew < 5 && datanew > -5) &&   cyclesabet < cyclesabet_check)
+  {
+    datanumber = 0;
+    cyclesabet++;
+    //    Serial.print("zero adad");
+    //    Serial.println();
+  }
+  else if ( (  (datanew == datanumber) || (datanew ) == (datanumber - 1) || (datanew ) == (datanumber + 1)  ) && cyclesabet < cyclesabet_check)
+  {
+    //datanumber = round(((datanew + datanumber) / 2));
+    cyclesabet++;
+    //    Serial.print("kam");
+    //    Serial.println();
+  }
+  else if ( (  (datanew) == (datanumber - 2) || (datanew ) == (datanumber + 2)   ) && cyclesabet < cyclesabet_check)
+  {
+    datanumber = round(((datanew + datanumber) / 2));
+    cyclesabet++;
+  }
+  else
+  {
+    //Serial.println();
+    datanumber = round(datanew);
+    cyclesabet = 0;
+  }
+
+}
+
+/**
+   get Data
+*/
+float getDataWithShow(int loopvazn , bool refreshSevSeg , bool refreshShowSegment)
+{
+  float fetchData = 0 ;
+  for (int i = 0 ; i < loopvazn ; i++)
+  {
+    fetchData = fetchData + scale.read_average(1);
+    if (refreshSevSeg)
+    {
+      sevseg.refreshDisplay();
+    } else if (refreshShowSegment)
+    {
+      showSegment();
+    }
+    else
+    {}
+  }
+
+  fetchData = fetchData / loopvazn;
+
+  return fetchData;
 }
