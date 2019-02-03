@@ -15,6 +15,8 @@
 
 #include "HX711.h"  //You must have this library in your arduino library folder
 #include "SevSeg.h"
+#include <EEPROM.h>
+
 SevSeg sevseg; //Instantiate a seven segment controller object
 
 #define DOUT  3
@@ -32,6 +34,16 @@ float v1 = 931;
 
 int cyclesabet = 0;
 int cyclesabet_check = 100;
+
+struct Parametr {
+  float v200;
+};
+
+Parametr parametr1 = {
+  0,
+};
+
+
 //=============================================================================================
 //                         SETUP
 //=============================================================================================
@@ -142,12 +154,24 @@ void showSegment()
   showSegment(1);
 }
 
+void showSegment(char c1 , char c2 , char c3 , int loopshow)
+{
+  char str[] = {'0', '0', '0'};
+  str[0] = c1;
+  str[1] = c2;
+  str[2] = c3;
+  sevseg.setChars(str);
+  for (int i = 0 ; i < loopshow ; i++)
+  {
+    sevseg.refreshDisplay(); // Must run repeatedly
+  }
+}
+
 void showSegment(int loopshow)
 {
   static unsigned long timer = millis();
 
   sevseg.setNumber((int)datanumber, 1);
-
 
   for (int i = 0 ; i < loopshow ; i++)
   {
@@ -155,6 +179,8 @@ void showSegment(int loopshow)
   }
 
 }
+
+
 /**
    checkZeroCalibration
 */
@@ -202,34 +228,15 @@ void checkZeroAndCal()
 
 void Calibration()
 {
-  char str[] = {'C', 'A', 'L'};
-  sevseg.setChars(str);
-  for (int i = 0 ; i < 500 ; i++)
-  {
-    sevseg.refreshDisplay(); // Must run repeatedly
-  }
-
-  str[0] = 's';
-  str[1] = 'e';
-  str[2] = 't';
-  sevseg.setChars(str);
-  for (int i = 0 ; i < 500 ; i++)
-  {
-    sevseg.refreshDisplay(); // Must run repeatedly
-  }
-
-  str[0] = '0';
-  str[1] = '0';
-  str[2] = '0';
-  sevseg.setChars(str);
-  for (int i = 0 ; i < 1000 ; i++)
-  {
-    sevseg.refreshDisplay(); // Must run repeatedly
-  }
+  showSegment('C' , 'A' , 'L' , 500);
 
 
   int loopvazn = 50;
   float data_fetch = 0;
+
+  //SET ZERO
+  showSegment('s' , 'e' , 't' , 500);
+  showSegment('0' , '0' , '0' , 1000);
 
   for (int y = 0 ; y < loopvazn ; y++)
   {
@@ -237,64 +244,27 @@ void Calibration()
     showSegment();
   }
 
-  Serial.println("data_fetch=");
-  Serial.println(data_fetch);
-
   zero = (data_fetch / loopvazn);
+
+
+  //SET 200
   data_fetch = 0;
+  showSegment('s' , 'e' , 't' , 500);
+  showSegment('2' , '0' , '0' , 1000);
 
-
-  str[0] = 's';
-  str[1] = 'e';
-  str[2] = 't';
-  sevseg.setChars(str);
-  for (int i = 0 ; i < 500 ; i++)
-  {
-    sevseg.refreshDisplay(); // Must run repeatedly
-  }
-
-  str[0] = '2';
-  str[1] = '0';
-  str[2] = '0';
-  sevseg.setChars(str);
-  for (int i = 0 ; i < 1000 ; i++)
-  {
-    sevseg.refreshDisplay(); // Must run repeatedly
-  }
-
-  data_fetch = 0 ;
   for (int y = 0 ; y < loopvazn ; y++)
   {
     data_fetch = data_fetch + scale.read_average(1) - zero ;
     showSegment();
   }
 
-  Serial.println("data_fetch=");
-  Serial.println(data_fetch);
-
   float t1  = (data_fetch / loopvazn);
 
 
   parametr1.v200 = t1 / 200;
-
-  str[0] = 'C';
-  str[1] = 'A';
-  str[2] = 'L';
-  sevseg.setChars(str);
-  for (int i = 0 ; i < 500 ; i++)
-  {
-    sevseg.refreshDisplay(); // Must run repeatedly
-  }
-
-  str[0] = 'E';
-  str[1] = 'N';
-  str[2] = 'D';
-  sevseg.setChars(str);
-  for (int i = 0 ; i < 500 ; i++)
-  {
-    sevseg.refreshDisplay(); // Must run repeatedly
-  }
-
-
   EEPROM.put( 0, parametr1 );
+
+  showSegment('C' , 'A' , 'L' , 500);
+  showSegment('E' , 'n' , 'd' , 500);
+
 }
